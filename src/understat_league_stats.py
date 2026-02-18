@@ -28,8 +28,9 @@ LEAGUE_CODES = {
     "Ligue_1": "Ligue 1",
 }
 
-# Base directory to write CSVs into (relative to where the script is run)
-OUTPUT_DIR = Path(".")
+# Base directory for all CSV output (relative to where the script is run).
+# Files are written under data/{year}/, e.g. data/2025/EPL_players_2025.csv
+DATA_DIR = Path("data")
 
 headers = {
     "User-Agent": (
@@ -180,11 +181,10 @@ def main():
             `PTS_2024`, `xG_2024`, ...)
       - also save per-season player stats as before.
 
-    Example team-level output filename:
-      - `EPL_teams_xg_last_5_seasons.csv`
+    Example output paths:
+      - data/2025/EPL_players_2025.csv (per-season player stats)
+      - data/2025/EPL_teams_xg_last_5_seasons.csv (wide team table)
     """
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
     seasons = list(range(SEASON_START_YEAR, SEASON_START_YEAR - 5, -1))
 
     for league_code, league_label in LEAGUE_CODES.items():
@@ -198,8 +198,10 @@ def main():
             df_teams = extract_understat_teams_table(payload)
             df_players = extract_understat_players_table(payload)
 
-            # Save per-season player stats as individual CSVs
-            players_filename = OUTPUT_DIR / f"{league_code}_players_{season}.csv"
+            # Save per-season player stats under data/{season}/
+            season_dir = DATA_DIR / str(season)
+            season_dir.mkdir(parents=True, exist_ok=True)
+            players_filename = season_dir / f"{league_code}_players_{season}.csv"
             df_players.to_csv(players_filename, index=False, encoding="utf-8")
 
             # Prepare team DataFrame for wide format:
@@ -215,10 +217,12 @@ def main():
                 # Outer join in case team membership changes between seasons
                 wide_teams_df = wide_teams_df.join(df_teams_season, how="outer")
 
-        # Once all seasons are processed for a league, save the wide team table
+        # Once all seasons are processed for a league, save the wide team table under data/{SEASON_START_YEAR}/
         if wide_teams_df is not None:
             wide_teams_df = wide_teams_df.reset_index()  # bring Team back as a column
-            teams_filename = OUTPUT_DIR / f"{league_code}_teams_xg_last_{len(seasons)}_seasons.csv"
+            start_year_dir = DATA_DIR / str(SEASON_START_YEAR)
+            start_year_dir.mkdir(parents=True, exist_ok=True)
+            teams_filename = start_year_dir / f"{league_code}_teams_xg_last_{len(seasons)}_seasons.csv"
             wide_teams_df.to_csv(teams_filename, index=False, encoding="utf-8")
 
             print(f"  Saved wide team table ({len(wide_teams_df)} rows) to {teams_filename}")

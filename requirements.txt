@@ -8,3 +8,4 @@ ipykernel==7.2.0
 plotly==6.5.2
 nbformat==5.10.4
 statsmodels==0.14.6
+playwright==1.47.1
